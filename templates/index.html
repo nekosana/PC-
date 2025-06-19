@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>鼠标操作录制系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .control-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .btn {
+            padding: 15px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-record {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+            color: white;
+        }
+
+        .btn-stop {
+            background: linear-gradient(45deg, #feca57, #ff9ff3);
+            color: white;
+        }
+
+        .btn-replay {
+            background: linear-gradient(45deg, #48cae4, #023e8a);
+            color: white;
+        }
+
+        .btn-loop {
+            background: linear-gradient(45deg, #06ffa5, #005f73);
+            color: white;
+        }
+
+        .btn-stop-replay {
+            background: linear-gradient(45deg, #f72585, #b5179e);
+            color: white;
+        }
+
+        .btn:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .shortcuts-info {
+            background: #e8f4fd;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 5px solid #2196f3;
+        }
+
+        .shortcuts-info h3 {
+            color: #1976d2;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .shortcut-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .shortcut-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .shortcut-key {
+            background: #333;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-weight: bold;
+            margin-right: 15px;
+            min-width: 35px;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        .shortcut-description {
+            color: #555;
+            font-weight: 500;
+        }
+
+        .status-panel {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 30px;
+            border-left: 5px solid #667eea;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+
+        .status-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .status-label {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .status-value {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .status-recording {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .status-replaying {
+            background: #48cae4;
+            color: white;
+        }
+
+        .status-idle {
+            background: #6c757d;
+            color: white;
+        }
+
+        .status-loop {
+            background: #06ffa5;
+            color: white;
+        }
+
+        .recordings-panel {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            border-left: 5px solid #764ba2;
+        }
+
+        .recordings-title {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .recording-item {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .recording-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+        }
+
+        .recording-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .recording-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .recording-name {
+            font-weight: 600;
+            color: #333;
+            font-size: 16px;
+        }
+
+        .recording-load {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .recording-load:hover {
+            background: linear-gradient(45deg, #764ba2, #667eea);
+        }
+
+        .recording-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .info-item {
+            background: #f1f3f4;
+            padding: 8px 12px;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        .message {
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+
+        .message-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loader {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(102, 126, 234, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(102, 126, 234, 0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🖱️ 鼠标操作录制系统</h1>
+            <p>录制、回放、循环您的鼠标操作</p>
+        </div>
+        
+        <div class="content">
+            <!-- 控制面板 -->
+            <div class="control-panel">
+                <button id="startBtn" class="btn btn-record">📹 开始录制</button>
+                <button id="stopBtn" class="btn btn-stop" disabled>⏹️ 停止录制</button>
+                <button id="replayBtn" class="btn btn-replay" disabled>▶️ 回放一次</button>
+                <button id="loopBtn" class="btn btn-loop" disabled>🔄 循环回放</button>
+                <button id="stopReplayBtn" class="btn btn-stop-replay" disabled>⏸️ 停止回放</button>
+            </div>
+
+            <!-- 快捷键说明 -->
+            <div class="shortcuts-info">
+                <h3>⌨️ 全局快捷键</h3>
+                <div class="shortcut-item">
+                    <span class="shortcut-key">F9</span>
+                    <span class="shortcut-description">开始/停止录制 (全局生效，即使窗口未激活)</span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="shortcut-key">F10</span>
+                    <span class="shortcut-description">开始/停止单次回放</span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="shortcut-key">F11</span>
+                    <span class="shortcut-description">开始/停止循环回放</span>
+                </div>
+            </div>
+
+            <!-- 消息显示 -->
+            <div id="messageContainer"></div>
+
+            <!-- 状态面板 -->
+            <div class="status-panel">
+                <div class="status-item">
+                    <span class="status-label">录制状态:</span>
+                    <span id="recordingStatus" class="status-value status-idle">未录制</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">回放状态:</span>
+                    <span id="replayingStatus" class="status-value status-idle">未回放</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">已录制操作:</span>
+                    <span id="actionsCount" class="status-value status-idle">0</span>
+                </div>
+            </div>
+
+            <!-- 录制文件列表 -->
+            <div class="recordings-panel">
+                <h3 class="recordings-title">📁 保存的录制文件</h3>
+                <div id="recordingsList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class MouseRecorderApp {
+            constructor() {
+                this.initElements();
+                this.bindEvents();
+                this.updateStatus();
+                this.loadRecordings();
+                
+                // 定期更新状态
+                setInterval(() => this.updateStatus(), 1000);
+            }
+
+            initElements() {
+                this.startBtn = document.getElementById('startBtn');
+                this.stopBtn = document.getElementById('stopBtn');
+                this.replayBtn = document.getElementById('replayBtn');
+                this.loopBtn = document.getElementById('loopBtn');
+                this.stopReplayBtn = document.getElementById('stopReplayBtn');
+                this.messageContainer = document.getElementById('messageContainer');
+                this.recordingStatus = document.getElementById('recordingStatus');
+                this.replayingStatus = document.getElementById('replayingStatus');
+                this.actionsCount = document.getElementById('actionsCount');
+                this.recordingsList = document.getElementById('recordingsList');
+            }
+
+            bindEvents() {
+                this.startBtn.addEventListener('click', () => this.startRecording());
+                this.stopBtn.addEventListener('click', () => this.stopRecording());
+                this.replayBtn.addEventListener('click', () => this.replay(false));
+                this.loopBtn.addEventListener('click', () => this.replay(true));
+                this.stopReplayBtn.addEventListener('click', () => this.stopReplay());
+            }
+
+            async makeRequest(url, options = {}) {
+                try {
+                    const response = await fetch(url, {
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        ...options
+                    });
+                    return await response.json();
+                } catch (error) {
+                    console.error('请求失败:', error);
+                    return { success: false, message: '网络请求失败' };
+                }
+            }
+
+            showMessage(message, type = 'success') {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message message-${type}`;
+                messageDiv.textContent = message;
+                
+                this.messageContainer.innerHTML = '';
+                this.messageContainer.appendChild(messageDiv);
+                
+                setTimeout(() => {
+                    messageDiv.remove();
+                }, 5000);
+            }
+
+            async startRecording() {
+                this.startBtn.innerHTML = '<span class="loader"></span>开始录制...';
+                this.startBtn.disabled = true;
+                
+                const result = await this.makeRequest('/api/start_recording', {
+                    method: 'POST'
+                });
+                
+                if (result.success) {
+                    this.showMessage(result.message, 'success');
+                    this.updateButtonStates(true, false, false, false);
+                } else {
+                    this.showMessage(result.message, 'error');
+                    this.startBtn.innerHTML = '📹 开始录制';
+                    this.startBtn.disabled = false;
+                }
+            }
+
+            async stopRecording() {
+                this.stopBtn.innerHTML = '<span class="loader"></span>停止录制...';
+                this.stopBtn.disabled = true;
+                
+                const result = await this.makeRequest('/api/stop_recording', {
+                    method: 'POST'
+                });
+                
+                if (result.success) {
+                    this.showMessage(`${result.message} (${result.actions_count} 个操作)`, 'success');
+                    this.updateButtonStates(false, false, true, true);
+                    this.loadRecordings(); // 重新加载录制列表
+                } else {
+                    this.showMessage(result.message, 'error');
+                }
+            }
+
+            async replay(loop = false) {
+                const btn = loop ? this.loopBtn : this.replayBtn;
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<span class="loader"></span>启动中...';
+                btn.disabled = true;
+                
+                const result = await this.makeRequest('/api/replay', {
+                    method: 'POST',
+                    body: JSON.stringify({ loop: loop })
+                });
+                
+                if (result.success) {
+                    this.showMessage(result.message, 'success');
+                    this.updateButtonStates(false, false, false, false, true);
+                } else {
+                    this.showMessage(result.message, 'error');
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }
+            }
+
+            async stopReplay() {
+                this.stopReplayBtn.innerHTML = '<span class="loader"></span>停止中...';
+                this.stopReplayBtn.disabled = true;
+                
+                const result = await this.makeRequest('/api/stop_replay', {
+                    method: 'POST'
+                });
+                
+                if (result.success) {
+                    this.showMessage(result.message, 'success');
+                    this.updateButtonStates(false, false, true, true, false);
+                } else {
+                    this.showMessage(result.message, 'error');
+                }
+            }
+
+            async updateStatus() {
+                const status = await this.makeRequest('/api/status');
+                
+                if (status.recording) {
+                    this.recordingStatus.textContent = '录制中';
+                    this.recordingStatus.className = 'status-value status-recording pulse';
+                } else {
+                    this.recordingStatus.textContent = '未录制';
+                    this.recordingStatus.className = 'status-value status-idle';
+                }
+                
+                if (status.replaying) {
+                    if (status.replay_loop) {
+                        this.replayingStatus.textContent = '循环回放中';
+                        this.replayingStatus.className = 'status-value status-loop pulse';
+                    } else {
+                        this.replayingStatus.textContent = '回放中';
+                        this.replayingStatus.className = 'status-value status-replaying pulse';
+                    }
+                } else {
+                    this.replayingStatus.textContent = '未回放';
+                    this.replayingStatus.className = 'status-value status-idle';
+                }
+                
+                this.actionsCount.textContent = status.actions_count || 0;
+                
+                // 根据状态更新按钮
+                if (status.recording) {
+                    this.updateButtonStates(true, false, false, false);
+                } else if (status.replaying) {
+                    this.updateButtonStates(false, false, false, false, true);
+                } else if (status.actions_count > 0) {
+                    this.updateButtonStates(false, false, true, true, false);
+                } else {
+                    this.updateButtonStates(false, false, false, false, false);
+                }
+            }
+
+            updateButtonStates(recording, stopping, canReplay, canLoop, replaying = false) {
+                this.startBtn.disabled = recording || replaying;
+                this.stopBtn.disabled = !recording;
+                this.replayBtn.disabled = !canReplay || replaying;
+                this.loopBtn.disabled = !canLoop || replaying;
+                this.stopReplayBtn.disabled = !replaying;
+                
+                // 重置按钮文本
+                if (!recording) {
+                    this.startBtn.innerHTML = '📹 开始录制';
+                }
+                if (!stopping) {
+                    this.stopBtn.innerHTML = '⏹️ 停止录制';
+                }
+                if (!replaying) {
+                    this.replayBtn.innerHTML = '▶️ 回放一次';
+                    this.loopBtn.innerHTML = '🔄 循环回放';
+                    this.stopReplayBtn.innerHTML = '⏸️ 停止回放';
+                }
+            }
+
+            async loadRecordings() {
+                const result = await this.makeRequest('/api/recordings');
+                
+                if (result.recordings && result.recordings.length > 0) {
+                    this.displayRecordings(result.recordings);
+                } else {
+                    this.recordingsList.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">暂无保存的录制文件</p>';
+                }
+            }
+
+            displayRecordings(recordings) {
+                this.recordingsList.innerHTML = '';
+                
+                recordings.forEach(recording => {
+                    const item = document.createElement('div');
+                    item.className = 'recording-item';
+                    
+                    const duration = recording.duration ? `${recording.duration.toFixed(2)}秒` : '未知';
+                    const createdAt = new Date(recording.created_at).toLocaleString('zh-CN');
+                    
+                    item.innerHTML = `
+                        <div class="recording-header">
+                            <span class="recording-name">${recording.filename}</span>
+                            <button class="recording-load" onclick="app.loadRecording('${recording.filepath}')">
+                                加载
+                            </button>
+                        </div>
+                        <div class="recording-info">
+                            <div class="info-item">
+                                <strong>时长:</strong> ${duration}
+                            </div>
+                            <div class="info-item">
+                                <strong>操作数:</strong> ${recording.actions_count}
+                            </div>
+                            <div class="info-item">
+                                <strong>创建时间:</strong> ${createdAt}
+                            </div>
+                        </div>
+                    `;
+                    
+                    this.recordingsList.appendChild(item);
+                });
+            }
+
+            async loadRecording(filepath) {
+                const result = await this.makeRequest('/api/load_recording', {
+                    method: 'POST',
+                    body: JSON.stringify({ filepath: filepath })
+                });
+                
+                if (result.success) {
+                    this.showMessage(`${result.message} (${result.actions_count} 个操作)`, 'success');
+                    this.updateStatus(); // 更新状态以启用回放按钮
+                } else {
+                    this.showMessage(result.message, 'error');
+                }
+            }
+        }
+
+        // 初始化应用
+        const app = new MouseRecorderApp();
+    </script>
+</body>
+</html>
